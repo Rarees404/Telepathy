@@ -1,814 +1,544 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Secure Chat • Live</title>
+    <title>Telepathy — Secure Chat</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --bg-primary: #0a0a1f;
-            --bg-secondary: #121229;
-            --sent-bg: #00e5ff;
-            --recv-bg: #1e1e2e;
-            --accent-magenta: #ff0080;
-            --text-main: #e0e0ff;
-            --text-secondary: #8888aa;
-            --timestamp-text: #999;
-            --glow-small: 0 0 6px var(--sent-bg);
-            --transition: 0.2s ease;
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#07070f;--surface:#0e0e1a;--card:rgba(255,255,255,0.04);--card-border:rgba(255,255,255,0.08);
+            --cyan:#00e5ff;--purple:#a855f7;--magenta:#ec4899;--green:#22c55e;--red:#ef4444;--orange:#f97316;
+            --text:#e2e8f0;--text-dim:#64748b;--text-muted:#475569;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: var(--bg-primary);
-            font-family: 'Orbitron', sans-serif;
-            color: var(--text-main);
-            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-        }
+        body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
 
-        header#chat-header {
-            background: var(--bg-secondary);
-            padding: 1rem 1.5rem;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: var(--glow-small);
-            border-bottom: 2px solid var(--sent-bg);
-            z-index: 10;
-        }
-        .chat-title { font-size: 1.4rem; color: var(--sent-bg); text-shadow: var(--glow-small); display: flex; align-items: center; }
-        .chat-title i { margin-right: 0.5rem; }
-        .account-btn { background: transparent; border: 1px solid var(--sent-bg); border-radius: 6px; padding: 0.5rem 0.75rem; color: var(--sent-bg); font-size: 0.9rem; display: inline-flex; align-items: center; text-decoration: none; transition: var(--transition); }
-        .account-btn i { margin-right: 0.4rem; }
-        .account-btn:hover { background: rgba(0,229,255,0.1); }
+        /* ── Header ── */
+        .chat-header{background:var(--surface);border-bottom:1px solid var(--card-border);padding:0.75rem 1.25rem;
+            display:flex;align-items:center;justify-content:space-between;z-index:20;flex-shrink:0}
+        .header-left{display:flex;align-items:center;gap:0.75rem}
+        .header-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+            display:flex;align-items:center;justify-content:center;font-size:0.9rem}
+        .header-info h2{font-size:0.95rem;font-weight:600}
+        .header-info p{font-size:0.72rem;color:var(--green);display:flex;align-items:center;gap:0.3rem}
+        .status-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        .header-actions{display:flex;gap:0.5rem}
+        .header-btn{padding:0.4rem 0.8rem;border-radius:8px;border:1px solid var(--card-border);background:transparent;
+            color:var(--text-dim);font-family:'Inter',sans-serif;font-size:0.78rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:0.3rem}
+        .header-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+        .header-btn.danger{border-color:rgba(239,68,68,0.3);color:var(--red)}
+        .header-btn.danger:hover{background:rgba(239,68,68,0.1);border-color:var(--red)}
 
-        #chatContainer { flex: 1; display: flex; flex-direction: column; height: calc(100vh - 68px); }
-        #messages { flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        /* ── Chat container ── */
+        .chat-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+        .messages-area{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:0.5rem}
+        .messages-area::-webkit-scrollbar{width:4px}
+        .messages-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
 
-        .message {
-            max-width: 75%; padding: 0.75rem 1rem; font-size: 0.95rem; display: flex; flex-direction: column; gap: 0.5rem; word-wrap: break-word; position: relative;
-        }
-        .message-header { display: flex; justify-content: space-between; align-items: center; }
-        .message-username { font-weight: bold; font-size: 0.85rem; color: var(--text-secondary); }
-        .message-timestamp { font-size: 0.7rem; color: var(--timestamp-text); }
+        /* ── Messages ── */
+        .msg-group{display:flex;flex-direction:column;gap:0.2rem}
+        .msg-group.sent{align-items:flex-end}
+        .msg-group.received{align-items:flex-start}
+        .msg-sender{font-size:0.7rem;color:var(--text-dim);padding:0 0.5rem;margin-bottom:0.1rem}
+        .msg-bubble{max-width:65%;padding:0.65rem 0.9rem;font-size:0.88rem;line-height:1.5;border-radius:16px;word-wrap:break-word}
+        .msg-group.sent .msg-bubble{background:linear-gradient(135deg,var(--cyan),#06b6d4);color:#000;border-bottom-right-radius:4px}
+        .msg-group.received .msg-bubble{background:rgba(255,255,255,0.06);border:1px solid var(--card-border);border-bottom-left-radius:4px}
+        .msg-meta{display:flex;align-items:center;gap:0.5rem;padding:0 0.5rem;margin-top:0.15rem}
+        .msg-time{font-size:0.65rem;color:var(--text-muted)}
+        .msg-group.sent .msg-meta{justify-content:flex-end}
 
-        /* Sent messages */
-        .message.current-user {
-            align-self: flex-end;
-            background: var(--sent-bg);
-            color: #000;
-            border-radius: 16px 16px 4px 16px;
-            box-shadow: var(--glow-small), 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .message.current-user::after {
-            content: "";
-            position: absolute; top: 12px; right: -8px; width: 0; height: 0;
-            border-top: 8px solid transparent;
-            border-left: 8px solid var(--sent-bg);
-            border-bottom: 8px solid transparent;
-        }
+        /* ── Verification badge ── */
+        .verify-badge{font-size:0.65rem;padding:0.1rem 0.4rem;border-radius:4px;cursor:pointer;transition:all .2s;user-select:none;display:inline-flex;align-items:center;gap:0.2rem}
+        .verify-badge.verified{color:var(--green);background:rgba(34,197,94,0.1)}
+        .verify-badge.verified:hover{background:rgba(34,197,94,0.2)}
+        .verify-badge.unverified{color:var(--orange);background:rgba(249,115,22,0.1)}
+        .verify-badge.unverified:hover{background:rgba(249,115,22,0.2)}
+        .verify-badge.failed{color:var(--red);background:rgba(239,68,68,0.1)}
+        .verify-badge.failed:hover{background:rgba(239,68,68,0.2)}
+        .verify-badge.own{color:var(--text-muted);background:rgba(255,255,255,0.04)}
 
-        /* Received messages */
-        .message.other-user {
-            align-self: flex-start;
-            background: var(--recv-bg);
-            color: var(--text-main);
-            border: 1px solid var(--sent-bg);
-            border-radius: 16px 16px 16px 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .message.other-user::before {
-            content: "";
-            position: absolute; top: 12px; left: -8px; width: 0; height: 0;
-            border-top: 8px solid transparent;
-            border-right: 8px solid var(--recv-bg);
-            border-bottom: 8px solid transparent;
-        }
+        /* ── Crypto details popover ── */
+        .crypto-details{display:none;margin-top:0.3rem;padding:0.5rem 0.7rem;background:rgba(0,0,0,0.5);border:1px solid var(--card-border);
+            border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;line-height:1.7;max-width:320px}
+        .crypto-details.show{display:block;animation:fade-in .2s ease}
+        @keyframes fade-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+        .cd-step{display:flex;align-items:center;gap:0.4rem;color:var(--text-dim)}
+        .cd-step.ok{color:var(--green)}
+        .cd-step.fail{color:var(--red)}
+        .cd-icon{width:14px;text-align:center;flex-shrink:0}
 
-        #message-form { display: flex; padding: 1rem; background: var(--bg-secondary); border-top: 2px solid var(--sent-bg); }
-        #message-input { flex:1; padding:0.75rem 1rem; border:1px solid var(--sent-bg); border-radius:50px; background:var(--bg-primary); color:var(--text-main); font-size:1rem; box-shadow:inset 0 0 5px rgba(0,0,0,0.5); transition:var(--transition); }
-        #message-input:focus { outline:none; border-color:var(--accent-magenta); }
-        #message-form button { margin-left:0.75rem; background:var(--accent-magenta); border-radius:50px; padding:0 1.2rem; cursor:pointer; display:flex; align-items:center; font-weight:bold; text-transform:uppercase; box-shadow:var(--glow-small); transition:var(--transition); color:#000; border:none; }
-        #message-form button:hover { transform:scale(1.05); }
-        #leave-chat { width:100%; padding:0.9rem; background:#ff0044; border:none; color:#fff; text-transform:uppercase; letter-spacing:0.5px; transition:var(--transition); cursor:pointer; }
-        #leave-chat:hover { background:#e6003d; }
-        .error-message { background:rgba(255,0,68,0.1); border:1px solid #ff0044; color:#ff6b6b; padding:0.75rem; border-radius:8px; margin:0.5rem; text-align:center; }
+        /* ── Input bar ── */
+        .input-bar{padding:0.75rem 1.25rem;background:var(--surface);border-top:1px solid var(--card-border);display:flex;gap:0.5rem;flex-shrink:0}
+        .input-bar input{flex:1;padding:0.7rem 1rem;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);
+            border-radius:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:0.88rem;transition:border-color .2s}
+        .input-bar input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,0.08)}
+        .send-btn{padding:0.7rem 1.2rem;background:linear-gradient(135deg,var(--cyan),#06b6d4);border:none;
+            border-radius:12px;color:#000;font-weight:600;font-size:0.85rem;cursor:pointer;transition:all .2s;
+            display:flex;align-items:center;gap:0.4rem;font-family:'Inter',sans-serif}
+        .send-btn:hover{transform:scale(1.03);box-shadow:0 0 20px rgba(0,229,255,0.3)}
+        .send-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important}
+
+        /* ── Send Modal ── */
+        .send-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);
+            display:none;align-items:center;justify-content:center;z-index:100}
+        .send-modal-overlay.show{display:flex;animation:fade-in .2s}
+        .send-modal{background:rgba(14,14,26,0.97);border:1px solid var(--card-border);border-radius:20px;
+            padding:1.75rem 2rem;max-width:420px;width:90%;box-shadow:0 0 60px rgba(0,229,255,0.1)}
+        .send-modal h3{font-size:1rem;font-weight:600;display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem}
+        .progress-bar-bg{height:4px;background:rgba(255,255,255,0.06);border-radius:4px;margin-bottom:1.25rem;overflow:hidden}
+        .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:4px;transition:width .3s ease;width:0}
+        .send-steps{display:flex;flex-direction:column;gap:0.35rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem}
+        .send-step{display:flex;align-items:center;gap:0.5rem;color:var(--text-muted);padding:0.25rem 0.5rem;border-radius:6px;transition:all .25s}
+        .send-step.active{color:var(--cyan);background:rgba(0,229,255,0.05)}
+        .send-step.done{color:var(--green)}
+        .send-step.fail{color:var(--red)}
+        .ss-icon{width:16px;text-align:center;flex-shrink:0}
+        .spin-sm{display:inline-block;width:11px;height:11px;border:1.5px solid rgba(0,229,255,0.2);border-top-color:var(--cyan);border-radius:50%;animation:spin .5s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .send-result{margin-top:1rem;padding:0.6rem 0.9rem;border-radius:8px;font-size:0.82rem;text-align:center;display:none;font-family:'Inter',sans-serif}
+        .send-result.success{display:block;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:var(--green)}
+        .send-result.error{display:block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red)}
+
+        /* ── Waiting overlay ── */
+        .waiting-overlay{position:fixed;inset:0;background:rgba(7,7,15,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50}
+        .waiting-card{text-align:center;max-width:400px;padding:2.5rem}
+        .waiting-pulse{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));
+            margin:0 auto 1.5rem;display:flex;align-items:center;justify-content:center;font-size:1.8rem;
+            animation:wait-pulse 2s ease-in-out infinite}
+        @keyframes wait-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,0.3)}50%{box-shadow:0 0 0 20px rgba(0,229,255,0)}}
+        .waiting-card h2{font-size:1.2rem;font-weight:600;margin-bottom:0.5rem}
+        .waiting-card p{font-size:0.85rem;color:var(--text-dim);line-height:1.5}
+        .waiting-pin{font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--cyan);
+            letter-spacing:0.3em;margin:1rem 0;text-shadow:0 0 20px rgba(0,229,255,0.4)}
+
+        .error-message{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red);padding:0.6rem 0.9rem;border-radius:10px;margin:0.5rem;text-align:center;font-size:0.82rem}
+
+        @media(max-width:500px){.msg-bubble{max-width:85%}}
     </style>
 </head>
 <body>
-<div id="waitingOverlay">
-    <div class="box">
-        <p>Waiting for the other user to join…</p>
+
+<!-- Waiting Overlay -->
+<div class="waiting-overlay" id="waitingOverlay">
+    <div class="waiting-card">
+        <div class="waiting-pulse">🔐</div>
+        <h2>Waiting for partner…</h2>
+        <p>Share the PIN below. Your partner needs to join from a <strong>different browser</strong>.</p>
+        <div class="waiting-pin" id="waiting-pin"></div>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem">Keys loaded. Connection will start automatically.</p>
     </div>
 </div>
-<header id="chat-header">
-    <div class="chat-title">
-        <i class="fas fa-comments"></i>
-        Talking with- <span id="partner-name">…</span>
+
+<!-- Header -->
+<header class="chat-header" id="chatHeader" style="display:none">
+    <div class="header-left">
+        <div class="header-avatar">💬</div>
+        <div class="header-info">
+            <h2>Talking with <span id="partner-name">…</span></h2>
+            <p><span class="status-dot"></span> E2E Encrypted</p>
+        </div>
     </div>
-    <a href="/chat/usermenu/" class="account-btn">
-        <i class="fas fa-user-circle"></i> Account
-    </a>
+    <div class="header-actions">
+        <button class="header-btn" onclick="window.location.href='/chat/usermenu/'">Dashboard</button>
+        <button class="header-btn danger" id="leave-chat">Leave</button>
+    </div>
 </header>
-<div id="chatContainer" style="display:none;">
-    <div id="messages"></div>
-    <form id="message-form">
-        <input type="text" id="message-input" placeholder="Type your message..." required />
-        <button type="submit">Send <i class="fas fa-paper-plane"></i></button>
+
+<!-- Chat -->
+<div class="chat-main" id="chatMain" style="display:none">
+    <div class="messages-area" id="messages"></div>
+    <form class="input-bar" id="message-form">
+        <input type="text" id="message-input" placeholder="Type a message…" required autocomplete="off" />
+        <button type="submit" class="send-btn" id="send-btn">Send ↗</button>
     </form>
-    <button id="leave-chat"><i class="fas fa-sign-out-alt"></i> Leave Chat</button>
+</div>
+
+<!-- Send Modal -->
+<div class="send-modal-overlay" id="sendModal">
+    <div class="send-modal">
+        <h3>🔒 Encrypting & Sending</h3>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="sendProgress"></div></div>
+        <div class="send-steps" id="sendSteps"></div>
+        <div class="send-result" id="sendResult"></div>
+    </div>
 </div>
 
 <script>
-    (async function() {
-        // Local Storage Keys
-        const STORAGE_PRIV = "private_key_pem"; // RSA-OAEP private key for decryption
-        const STORAGE_PUB = "public_key_pem";   // RSA-OAEP public key for encryption by others
-        const STORAGE_SIGN_PRIV = "signing_private_key_pem"; // RSA-PSS private key for signing
-        const STORAGE_SIGN_PUB = "signing_public_key_pem"; // RSA-PSS public key for signature verification by others
+(async function() {
+    // ── Storage keys ────────────────────────────────────────────────────────
+    const STORAGE_PRIV = "private_key_pem", STORAGE_PUB = "public_key_pem";
+    const STORAGE_SIGN_PRIV = "signing_private_key_pem", STORAGE_SIGN_PUB = "signing_public_key_pem";
 
-        const uploadEndpoint = "/chat/upload-public-key/"; // Endpoint for uploading RSA-OAEP public key
+    // ── Crypto helpers ──────────────────────────────────────────────────────
+    function derToPem(buf, label) {
+        const b = new Uint8Array(buf); let s = '';
+        for (let i = 0; i < b.byteLength; i++) s += String.fromCharCode(b[i]);
+        return `-----BEGIN ${label}-----\n${btoa(s).match(/.{1,64}/g).join('\n')}\n-----END ${label}-----`;
+    }
+    function ab2b64(buf) { const b = new Uint8Array(buf); let s=''; for(let i=0;i<b.byteLength;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+    function b642ab(b64) { const bin=atob(b64); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a.buffer; }
+    function generateAESKey() { return crypto.getRandomValues(new Uint8Array(32)); }
 
-        function derToPem(derBuffer, label) {
-            const bytes = new Uint8Array(derBuffer);
-            let b64 = "";
-            for (let i = 0; i < bytes.byteLength; i++) {
-                b64 += String.fromCharCode(bytes[i]);
-            }
-            const b64lines = window.btoa(b64).match(/.{1,64}/g).join("\n");
-            return `-----BEGIN ${label}-----\n${b64lines}\n-----END ${label}-----`;
+    async function encryptWithAES(key, plaintext) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ck = await crypto.subtle.importKey('raw',key,{name:'AES-GCM'},false,['encrypt']);
+        const enc = await crypto.subtle.encrypt({name:'AES-GCM',iv},ck,new TextEncoder().encode(plaintext));
+        return { ciphertext:ab2b64(enc.slice(0,enc.byteLength-16)), nonce:ab2b64(iv), tag:ab2b64(enc.slice(enc.byteLength-16)) };
+    }
+
+    async function decryptWithAES(key, data) {
+        const ct=b642ab(data.ciphertext), nonce=b642ab(data.nonce), tag=b642ab(data.tag);
+        const combined=new Uint8Array(ct.byteLength+tag.byteLength);
+        combined.set(new Uint8Array(ct)); combined.set(new Uint8Array(tag),ct.byteLength);
+        const ck=await crypto.subtle.importKey('raw',key,{name:'AES-GCM'},false,['decrypt']);
+        return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:nonce},ck,combined));
+    }
+
+    function importKey(pem,format,algo,usages){
+        const b64=pem.replace(/-----[^-]+-----|\s/g,'');
+        const der=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).buffer;
+        return crypto.subtle.importKey(format,der,{name:algo,hash:'SHA-256'},true,usages);
+    }
+    const importPubEnc=p=>importKey(p,'spki','RSA-OAEP',['encrypt']);
+    const importPrivDec=p=>importKey(p,'pkcs8','RSA-OAEP',['decrypt']);
+    const importPrivSign=p=>importKey(p,'pkcs8','RSA-PSS',['sign']);
+    const importPubVer=p=>importKey(p,'spki','RSA-PSS',['verify']);
+
+    // ── State ───────────────────────────────────────────────────────────────
+    let myEncKeys, mySignKeys, partnerPubKey=null, partnerSignKey=null;
+    const chatId=localStorage.getItem('chat_id'), token=localStorage.getItem('token');
+    let partnerUsername=localStorage.getItem('partner')||'…';
+    let pollInterval=null;
+    const renderedIds = new Set(); // track rendered message IDs to avoid duplicates
+
+    document.getElementById('waiting-pin').textContent = chatId||'';
+
+    // DOM
+    const messagesDiv=document.getElementById('messages');
+    const partnerNameEl=document.getElementById('partner-name');
+    const messageForm=document.getElementById('message-form');
+    const messageInput=document.getElementById('message-input');
+    const sendBtn=document.getElementById('send-btn');
+    const waitingOverlay=document.getElementById('waitingOverlay');
+    const chatHeader=document.getElementById('chatHeader');
+    const chatMain=document.getElementById('chatMain');
+    const leaveBtn=document.getElementById('leave-chat');
+
+    function showError(msg){ const d=document.createElement('div');d.className='error-message';d.textContent=msg;messagesDiv.appendChild(d);messagesDiv.scrollTop=messagesDiv.scrollHeight; }
+
+    // ── Send Modal helpers ──────────────────────────────────────────────────
+    const SEND_STEPS = [
+        'Generating AES-256 session key…',
+        'Encrypting message (AES-256-GCM)…',
+        'Wrapping key for partner (RSA-OAEP)…',
+        'Wrapping key for self (RSA-OAEP)…',
+        'Signing message (RSA-PSS)…',
+        'Sending encrypted payload…'
+    ];
+    const sendModal=document.getElementById('sendModal');
+    const sendProgress=document.getElementById('sendProgress');
+    const sendStepsEl=document.getElementById('sendSteps');
+    const sendResult=document.getElementById('sendResult');
+
+    function showSendModal() {
+        sendStepsEl.innerHTML = '';
+        sendResult.className = 'send-result';
+        sendProgress.style.width = '0%';
+        SEND_STEPS.forEach((text,i)=>{
+            const step=document.createElement('div');
+            step.className='send-step';
+            step.id='ss-'+i;
+            step.innerHTML=`<span class="ss-icon">○</span><span>${text}</span>`;
+            sendStepsEl.appendChild(step);
+        });
+        sendModal.classList.add('show');
+    }
+
+    function advanceSendStep(idx, ok=true) {
+        const el=document.getElementById('ss-'+idx);
+        if(!el) return;
+        // mark previous as done
+        for(let i=0;i<idx;i++){
+            const prev=document.getElementById('ss-'+i);
+            if(prev&&prev.classList.contains('active')){prev.className='send-step done';prev.querySelector('.ss-icon').textContent='✓';}
         }
+        el.className='send-step active';
+        el.querySelector('.ss-icon').innerHTML='<span class="spin-sm"></span>';
+        sendProgress.style.width = ((idx+1)/SEND_STEPS.length*100)+'%';
+    }
 
-        function arrayBufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let binary = "";
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            return window.btoa(binary);
+    function completeSendStep(idx, ok=true) {
+        const el=document.getElementById('ss-'+idx);
+        if(!el) return;
+        el.className='send-step '+(ok?'done':'fail');
+        el.querySelector('.ss-icon').textContent=ok?'✓':'✗';
+        if(ok) sendProgress.style.width=((idx+1)/SEND_STEPS.length*100)+'%';
+    }
+
+    function closeSendModal(success, msg) {
+        if(success){
+            sendResult.className='send-result success'; sendResult.textContent=msg||'Message sent securely!';
+            setTimeout(()=>sendModal.classList.remove('show'),5000);
+        } else {
+            sendResult.className='send-result error'; sendResult.textContent=msg||'Failed to send.';
+            setTimeout(()=>sendModal.classList.remove('show'),5000);
         }
+    }
 
-        function base64ToArrayBuffer(b64) {
-            const binary = window.atob(b64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
-            return bytes.buffer;
+    // ── Load keys ───────────────────────────────────────────────────────────
+    async function loadKeys(){
+        let p=localStorage.getItem(STORAGE_PRIV),u=localStorage.getItem(STORAGE_PUB);
+        let sp=localStorage.getItem(STORAGE_SIGN_PRIV),su=localStorage.getItem(STORAGE_SIGN_PUB);
+        if(!p||!u||!sp||!su){
+            const enc=await crypto.subtle.generateKey({name:'RSA-OAEP',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['encrypt','decrypt']);
+            const sign=await crypto.subtle.generateKey({name:'RSA-PSS',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
+            p=derToPem(await crypto.subtle.exportKey('pkcs8',enc.privateKey),'PRIVATE KEY');
+            u=derToPem(await crypto.subtle.exportKey('spki',enc.publicKey),'PUBLIC KEY');
+            sp=derToPem(await crypto.subtle.exportKey('pkcs8',sign.privateKey),'PRIVATE KEY');
+            su=derToPem(await crypto.subtle.exportKey('spki',sign.publicKey),'PUBLIC KEY');
+            localStorage.setItem(STORAGE_PRIV,p);localStorage.setItem(STORAGE_PUB,u);
+            localStorage.setItem(STORAGE_SIGN_PRIV,sp);localStorage.setItem(STORAGE_SIGN_PUB,su);
+            myEncKeys={privateKey:enc.privateKey,publicKey:enc.publicKey};
+            mySignKeys={privateKey:sign.privateKey,publicKey:sign.publicKey};
+            if(token) await fetch('/chat/upload-public-key/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Token '+token},body:JSON.stringify({public_key:u,signing_public_key:su})});
+        } else {
+            myEncKeys={privateKey:await importPrivDec(p),publicKey:await importPubEnc(u)};
+            mySignKeys={privateKey:await importPrivSign(sp),publicKey:await importPubVer(su)};
         }
+    }
 
+    async function loadPartnerKey(){
+        const pid=localStorage.getItem('partner_id');
+        if(!pid) throw new Error('No partner_id');
+        const resp=await fetch(`/chat/get-public-key/${pid}/`,{headers:{'Authorization':'Token '+token}});
+        if(!resp.ok) throw new Error('Failed to fetch partner key');
+        const {public_key:pk,signing_public_key:sk}=await resp.json();
+        partnerPubKey=await importPubEnc(pk);
+        if(sk) partnerSignKey=await importPubVer(sk);
+    }
 
-        function generateAESKey() {
-            return window.crypto.getRandomValues(new Uint8Array(32)); // AES-256 key
-        }
+    // ── Chat logic ──────────────────────────────────────────────────────────
+    async function startChat(){
+        if(!chatId||!token){window.location.href='/';return;}
+        try{await loadKeys();}catch(e){console.error(e);showError('Key setup failed.');return;}
+        try{
+            const jr=await fetch('/chat/join-chat/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Token '+token},body:JSON.stringify({chat_id:chatId})});
+            if(!jr.ok){alert('Failed to join chat.');window.location.href='/';return;}
+        }catch(e){alert('Network error.');window.location.href='/';return;}
+        pollInterval=setInterval(checkChatReady,2000);
+        await checkChatReady();
+    }
 
-        // AES-GCM encryption
-        async function encryptWithAES(key, plaintext) {
-            const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV recommended for AES-GCM
-            const algorithm = { name: 'AES-GCM', iv: iv };
-
-            const cryptoKey = await window.crypto.subtle.importKey(
-                'raw',
-                key,
-                { name: 'AES-GCM' },
-                false, // not extractable
-                ['encrypt']
-            );
-
-            const encrypted = await window.crypto.subtle.encrypt(
-                algorithm,
-                cryptoKey,
-                new TextEncoder().encode(plaintext)
-            );
-
-            // AES-GCM encrypted output is ciphertext + authentication tag.
-            // The tag is usually the last 16 bytes.
-            const ciphertext = encrypted.slice(0, encrypted.byteLength - 16);
-            const tag = encrypted.slice(encrypted.byteLength - 16);
-
-            return {
-                ciphertext: arrayBufferToBase64(ciphertext),
-                nonce: arrayBufferToBase64(iv),
-                tag: arrayBufferToBase64(tag)
-            };
-        }
-
-        // AES-GCM decryption
-        async function decryptWithAES(key, data) {
-            const ciphertext = base64ToArrayBuffer(data.ciphertext);
-            const nonce = base64ToArrayBuffer(data.nonce);
-            const tag = base64ToArrayBuffer(data.tag);
-
-            // Combine ciphertext and tag for decryption
-            const combined = new Uint8Array(ciphertext.byteLength + tag.byteLength);
-            combined.set(new Uint8Array(ciphertext));
-            combined.set(new Uint8Array(tag), ciphertext.byteLength);
-
-            const algorithm = { name: 'AES-GCM', iv: nonce };
-
-            const cryptoKey = await window.crypto.subtle.importKey(
-                'raw',
-                key,
-                { name: 'AES-GCM' },
-                false, // not extractable
-                ['decrypt']
-            );
-
-            const decrypted = await window.crypto.subtle.decrypt(
-                algorithm,
-                cryptoKey,
-                combined
-            );
-
-            return new TextDecoder().decode(decrypted);
-        }
-
-        // Import RSA Public Key for Encryption (OAEP)
-        async function importRsaPublicKeyForEncrypt(pem) {
-            const b64 = pem.replace(/-----.*?-----|[\n\r]/g, ""); // Remove PEM headers and newlines
-            const der = Uint8Array.from(window.atob(b64), c => c.charCodeAt(0)).buffer;
-            return await window.crypto.subtle.importKey(
-                "spki", // SubjectPublicKeyInfo format
-                der,
-                { name: "RSA-OAEP", hash: "SHA-256" },
-                true, // extractable
-                ["encrypt"]
-            );
-        }
-
-        // Import RSA Private Key for Decryption (OAEP)
-        async function importRsaPrivateKeyForDecrypt(pem) {
-            const b64 = pem.replace(/-----.*?-----|[\n\r]/g, "");
-            const der = Uint8Array.from(window.atob(b64), c => c.charCodeAt(0)).buffer;
-            return await window.crypto.subtle.importKey(
-                "pkcs8", // PrivateKeyInfo format
-                der,
-                { name: "RSA-OAEP", hash: "SHA-256" },
-                true, // extractable
-                ["decrypt"]
-            );
-        }
-
-        // Import RSA Private Key for Signing (PSS)
-        async function importRsaPrivateKeyForSign(pem) {
-            const b64 = pem.replace(/-----.*?-----|[\n\r]/g, "");
-            const der = Uint8Array.from(window.atob(b64), c => c.charCodeAt(0)).buffer;
-            return await window.crypto.subtle.importKey(
-                "pkcs8", // PrivateKeyInfo format
-                der,
-                { name: "RSA-PSS", hash: "SHA-256" },
-                true, // extractable
-                ["sign"]
-            );
-        }
-
-        // Import RSA Public Key for Verification (PSS)
-        async function importRsaPublicKeyForVerify(pem) {
-            const b64 = pem.replace(/-----.*?-----|[\n\r]/g, "");
-            const der = Uint8Array.from(window.atob(b64), c => c.charCodeAt(0)).buffer;
-            return await window.crypto.subtle.importKey(
-                "spki", // SubjectPublicKeyInfo format
-                der,
-                { name: "RSA-PSS", hash: "SHA-256" },
-                true, // extractable
-                ["verify"]
-            );
-        }
-
-        let myEncryptionKeys; // Will store imported RSA-OAEP keys
-        let mySigningKeys;    // Will store imported RSA-PSS keys
-        let partnerPublicKey=null;
-        let partnerSigningKey = null;
-
-        async function loadAndGenerateKeys() {
-            let privPem = localStorage.getItem(STORAGE_PRIV);
-            let pubPem = localStorage.getItem(STORAGE_PUB);
-            let signPrivPem = localStorage.getItem(STORAGE_SIGN_PRIV);
-            let signPubPem = localStorage.getItem(STORAGE_SIGN_PUB);
-
-            // If any critical key is missing, generate all new pairs
-            if (!privPem || !pubPem || !signPrivPem || !signPubPem) {
-                console.log("No keys found — generating fresh RSA-OAEP & RSA-PSS keypairs…");
-                try {
-                    console.log("Generating RSA-OAEP keypair for encryption…");
-                    const encKeyPair = await window.crypto.subtle.generateKey(
-                        {
-                            name: "RSA-OAEP",
-                            modulusLength: 2048,
-                            publicExponent: new Uint8Array([1, 0, 1]), // 65537
-                            hash: "SHA-256"
-                        },
-                        true, // extractable
-                        ["encrypt", "decrypt"]
-                    );
-                    const encPrivDer = await window.crypto.subtle.exportKey("pkcs8", encKeyPair.privateKey);
-                    privPem = derToPem(encPrivDer, "PRIVATE KEY");
-                    localStorage.setItem(STORAGE_PRIV, privPem);
-                    const encPubDer = await window.crypto.subtle.exportKey("spki", encKeyPair.publicKey);
-                    pubPem = derToPem(encPubDer, "PUBLIC KEY");
-                    localStorage.setItem(STORAGE_PUB, pubPem);
-                    myEncryptionKeys = { privateKey: encKeyPair.privateKey, publicKey: encKeyPair.publicKey };
-
-                    // RSA-PSS Key Pair (for Digital Signatures)
-                    console.log("Generating RSA-PSS keypair for signing…");
-                    const signKeyPair = await window.crypto.subtle.generateKey(
-                        {
-                            name: "RSA-PSS",
-                            modulusLength: 2048,
-                            publicExponent: new Uint8Array([1, 0, 1]), // 65537
-                            hash: "SHA-256"
-                        },
-                        true, // extractable
-                        ["sign", "verify"]
-                    );
-                    const signPrivDer = await window.crypto.subtle.exportKey("pkcs8", signKeyPair.privateKey);
-                    signPrivPem = derToPem(signPrivDer, "PRIVATE KEY");
-                    localStorage.setItem(STORAGE_SIGN_PRIV, signPrivPem);
-                    const signPubDer = await window.crypto.subtle.exportKey("spki", signKeyPair.publicKey);
-                    signPubPem = derToPem(signPubDer, "PUBLIC KEY");
-                    localStorage.setItem(STORAGE_SIGN_PUB, signPubPem);
-                    mySigningKeys = { privateKey: signKeyPair.privateKey, publicKey: signKeyPair.publicKey };
-
-                    // Upload the RSA-OAEP public key to the server
-                    const token = localStorage.getItem("token");
-                    if (token) {
-                        console.log("Public key generated; uploading to server now…");
-                        const resp = await fetch(uploadEndpoint, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": "Token " + token
-                            },
-                            body: JSON.stringify({
-                                public_key: pubPem,
-                                signing_public_key: signPubPem
-                                })
-                        });
-                        if (!resp.ok) {
-                            console.warn("Could not upload public key:", await resp.text());
-                            showError("Failed to upload encryption public key.");
-                        } else {
-                            console.log("Server confirmed: public key saved successfully.");
-                        }
-                    } else {
-                        console.warn("No token found, cannot upload public key.");
-                    }
-
-                } catch (err) {
-                    console.error("Key‐generation/upload failed:", err);
-                    showError("Failed to generate or upload keys.");
-                    throw err;
+    async function checkChatReady(){
+        try{
+            const r=await fetch(`/chat/get-messages/${chatId}/`,{headers:{'Authorization':'Token '+token}});
+            if(r.status===204)return;
+            if(r.status===404||r.status===403){alert('Chat ended.');clearInterval(pollInterval);window.location.href='/';return;}
+            if(!r.ok)return;
+            const data=await r.json();
+            if(data.both_joined){
+                waitingOverlay.style.display='none';
+                chatHeader.style.display='flex';
+                chatMain.style.display='flex';
+                if(data.partner_id){localStorage.setItem('partner_id',data.partner_id);await loadPartnerKey();}
+                if(data.partner&&data.partner!==partnerUsername){
+                    partnerUsername=data.partner;partnerNameEl.textContent=partnerUsername;localStorage.setItem('partner',partnerUsername);
                 }
-            } else {
-                console.log("Loading existing RSA key pairs...");
-                // Import existing keys
-                try {
-                    myEncryptionKeys = {
-                        privateKey: await importRsaPrivateKeyForDecrypt(privPem),
-                        publicKey: await importRsaPublicKeyForEncrypt(pubPem)
-                    };
-                    mySigningKeys = {
-                        privateKey: await importRsaPrivateKeyForSign(signPrivPem),
-                        publicKey: await importRsaPublicKeyForVerify(signPubPem)
-                    };
-                } catch (err) {
-                    console.error("Error importing stored RSA key pairs:", err);
-                    showError("Failed to load encryption keys (messages may be unencrypted). Please clear local storage and try again.");
-                    throw err; // Re-throw to signify a problem
-                }
+                await appendNewMessages(data.messages, data.current_user);
+                clearInterval(pollInterval);
+                pollInterval=setInterval(fetchNewMessages,2000);
             }
+        }catch(e){console.error('checkChatReady:',e);}
+    }
+
+    async function fetchNewMessages(){
+        try{
+            const r=await fetch(`/chat/get-messages/${chatId}/`,{headers:{'Authorization':'Token '+token}});
+            if(!r.ok){if(r.status===404||r.status===403){alert('Chat ended.');clearInterval(pollInterval);window.location.href='/';}return;}
+            const data=await r.json();
+            if(data.partner&&data.partner!==partnerUsername){partnerUsername=data.partner;partnerNameEl.textContent=partnerUsername;await loadPartnerKey();}
+            await appendNewMessages(data.messages, data.current_user);
+        }catch(e){console.error('fetchNewMessages:',e);}
+    }
+
+    // ── Only render NEW messages (by ID) ────────────────────────────────────
+    async function appendNewMessages(msgs, currentUser){
+        let added = false;
+        for(const msg of msgs){
+            if(renderedIds.has(msg.id)) continue;
+            renderedIds.add(msg.id);
+            await renderMsg(msg, currentUser);
+            added = true;
+        }
+        if(added) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function renderMsg(msg, currentUser){
+        const isMine = msg.sender_username === currentUser;
+        const group = document.createElement('div');
+        group.className = 'msg-group '+(isMine?'sent':'received');
+
+        const sender = document.createElement('div');
+        sender.className = 'msg-sender';
+        sender.textContent = isMine ? 'You' : msg.sender_username;
+
+        // Decrypt
+        let text='';
+        const cryptoSteps = []; // {label, ok}
+
+        try{
+            cryptoSteps.push({label:'RSA-OAEP key unwrap', ok:null});
+            const wk = isMine ? (msg.sender_encrypted_symmetric_key||msg.encrypted_symmetric_key) : msg.encrypted_symmetric_key;
+            if(!wk) throw new Error('No wrapped key');
+            const aesKeyBuf = await crypto.subtle.decrypt({name:'RSA-OAEP'},myEncKeys.privateKey,b642ab(wk));
+            cryptoSteps[0].ok = true;
+
+            cryptoSteps.push({label:'AES-256-GCM decrypt', ok:null});
+            text = await decryptWithAES(new Uint8Array(aesKeyBuf),{ciphertext:msg.encrypted_text,nonce:msg.aes_nonce,tag:msg.aes_tag});
+            cryptoSteps[1].ok = true;
+
+            if(!isMine && msg.signature && partnerSignKey){
+                cryptoSteps.push({label:'RSA-PSS signature verify', ok:null});
+                try{
+                    const v = await crypto.subtle.verify({name:'RSA-PSS',saltLength:32},partnerSignKey,b642ab(msg.signature),new TextEncoder().encode(text));
+                    cryptoSteps[2].ok = v;
+                }catch(e){cryptoSteps[2].ok=false;}
+            } else if(isMine){
+                cryptoSteps.push({label:'Signed by you', ok:true});
+            }
+        }catch(e){
+            console.warn('Decrypt failed',msg.id,e);
+            return; // skip broken messages
         }
 
-        function pemToArrayBuffer(pem) {
-            const b64 = pem
-                .replace(/-----BEGIN PUBLIC KEY-----/, '')
-                .replace(/-----END PUBLIC KEY-----/, '')
-                .replace(/\s+/g, '');
-            const binary = atob(b64);
-            const len = binary.length;
-            const buf = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                buf[i] = binary.charCodeAt(i);
-            }
-            return buf.buffer;
+        const allOk = cryptoSteps.every(s=>s.ok===true);
+        const anyFail = cryptoSteps.some(s=>s.ok===false);
+
+        // Bubble
+        const bubble = document.createElement('div');
+        bubble.className='msg-bubble';
+        bubble.textContent=text;
+
+        // Meta row (time + badge)
+        const meta = document.createElement('div');
+        meta.className = 'msg-meta';
+
+        const timeEl = document.createElement('span');
+        timeEl.className = 'msg-time';
+        timeEl.textContent = new Date(msg.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+        const badge = document.createElement('span');
+        if(isMine){
+            badge.className='verify-badge own';
+            badge.textContent='🔒 Encrypted';
+        } else if(allOk){
+            badge.className='verify-badge verified';
+            badge.textContent='✓ Verified';
+        } else if(anyFail){
+            badge.className='verify-badge failed';
+            badge.textContent='✗ Unverified';
+        } else {
+            badge.className='verify-badge unverified';
+            badge.textContent='⚠ Unknown';
         }
 
-        async function loadPartnerPublicKey() {
-            const partnerId = localStorage.getItem('partner_id');
-            if (!partnerId) {
-                throw new Error('No partner_id in localStorage');
-            }
+        // Crypto details popover (click to expand)
+        const details = document.createElement('div');
+        details.className='crypto-details';
+        cryptoSteps.forEach(s=>{
+            const row=document.createElement('div');
+            row.className='cd-step '+(s.ok===true?'ok':s.ok===false?'fail':'');
+            row.innerHTML=`<span class="cd-icon">${s.ok===true?'✓':s.ok===false?'✗':'○'}</span><span>${s.label}</span>`;
+            details.appendChild(row);
+        });
 
-            const token = localStorage.getItem('token');
-            const resp = await fetch(`/chat/get-public-key/${partnerId}/`, {
-                headers: { 'Authorization': 'Token ' + token }
+        badge.addEventListener('click',(e)=>{
+            e.stopPropagation();
+            // Close all other open popovers
+            document.querySelectorAll('.crypto-details.show').forEach(d=>{if(d!==details)d.classList.remove('show');});
+            details.classList.toggle('show');
+        });
+
+        meta.append(timeEl, badge);
+        group.append(sender, bubble, meta, details);
+        messagesDiv.appendChild(group);
+    }
+
+    // Close popovers on click outside
+    document.addEventListener('click',()=>{document.querySelectorAll('.crypto-details.show').forEach(d=>d.classList.remove('show'));});
+
+    // ── Send message ────────────────────────────────────────────────────────
+    messageForm.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const plaintext=messageInput.value.trim();
+        if(!plaintext) return;
+        if(!myEncKeys?.publicKey||!mySignKeys?.privateKey||!partnerPubKey){showError('Keys not loaded.');return;}
+
+        sendBtn.disabled=true;
+        showSendModal();
+
+        try{
+            advanceSendStep(0);
+            const aesKey=generateAESKey();
+            completeSendStep(0);
+
+            advanceSendStep(1);
+            const aesEnc=await encryptWithAES(aesKey,plaintext);
+            completeSendStep(1);
+
+            advanceSendStep(2);
+            const wPartner=await crypto.subtle.encrypt({name:'RSA-OAEP'},partnerPubKey,aesKey);
+            completeSendStep(2);
+
+            advanceSendStep(3);
+            const wSelf=await crypto.subtle.encrypt({name:'RSA-OAEP'},myEncKeys.publicKey,aesKey);
+            completeSendStep(3);
+
+            advanceSendStep(4);
+            const sig=await crypto.subtle.sign({name:'RSA-PSS',saltLength:32},mySignKeys.privateKey,new TextEncoder().encode(plaintext));
+            completeSendStep(4);
+
+            advanceSendStep(5);
+            const resp=await fetch(`/chat/send-message/${chatId}/`,{
+                method:'POST',headers:{'Content-Type':'application/json','Authorization':'Token '+token},
+                body:JSON.stringify({encrypted_text:aesEnc.ciphertext,encrypted_symmetric_key:ab2b64(wPartner),sender_encrypted_symmetric_key:ab2b64(wSelf),aes_nonce:aesEnc.nonce,aes_tag:aesEnc.tag,signature:ab2b64(sig)})
             });
-            if (!resp.ok) {
-                throw new Error(`Could not fetch public key: ${resp.status}`);
+            completeSendStep(5,resp.ok);
+
+            if(resp.ok){
+                messageInput.value='';
+                closeSendModal(true);
+                await fetchNewMessages();
+            } else {
+                const err=await resp.json().catch(()=>({}));
+                closeSendModal(false,'Send failed: '+(err.message||resp.statusText));
             }
-
-            const {
-                public_key: pem,
-                signing_public_key: signPem
-            } = await resp.json();
-
-
-            // import the PEM key into a CryptoKey
-            const keyBuffer = pemToArrayBuffer(pem);
-            partnerPublicKey = await window.crypto.subtle.importKey(
-                'spki',
-                keyBuffer,
-                { name: 'RSA-OAEP', hash: 'SHA-256' },
-                false,
-                ['encrypt']
-            );
-            // ← SIGNING: import RSA-PSS public key for verify
-            partnerSigningKey = await importRsaPublicKeyForVerify(signPem);
-
-            // optionally cache the raw PEM in localStorage
-            localStorage.setItem('partner_public_key', pem);
+        }catch(err){
+            console.error('Send error:',err);
+            closeSendModal(false,'Encryption error. Message not sent.');
+        }finally{
+            sendBtn.disabled=false;
         }
+    });
 
-        async function sendMessage() {
-            if (!partnerPublicKey) {
-                await loadPartnerPublicKey();
-            }
+    // ── Leave chat ──────────────────────────────────────────────────────────
+    leaveBtn.addEventListener('click',async function(){
+        if(!confirm('Leave this chat? Messages will be lost.'))return;
+        try{await fetch('/chat/leave-chat/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Token '+token},body:JSON.stringify({chat_id:chatId})});}catch(e){}
+        localStorage.removeItem('chat_id');localStorage.removeItem('partner');localStorage.removeItem('partner_id');
+        clearInterval(pollInterval);window.location.href='/chat/usermenu/';
+    });
 
-            // now you can encrypt:
-            const encoder = new TextEncoder();
-            const data = encoder.encode(messageText);
-            const ciphertext = await window.crypto.subtle.encrypt(
-                { name: 'RSA-OAEP' },
-                partnerPublicKey,
-                data
-            );
-            // … send ciphertext to /chat/send-message/ …
-        }
+    window.addEventListener('beforeunload',function(){
+        if(pollInterval)clearInterval(pollInterval);
+        if(chatId&&token) navigator.sendBeacon('/chat/leave-chat/',new Blob([JSON.stringify({chat_id:chatId})],{type:'application/json'}));
+    });
 
-        //DOM Elements
-        const messagesDiv = document.getElementById("messages");
-        const partnerNameSpan = document.getElementById("partner-name");
-        const messageForm = document.getElementById("message-form");
-        const messageInput = document.getElementById("message-input");
-        const waitingOverlay = document.getElementById("waitingOverlay");
-        const chatContainer = document.getElementById("chatContainer");
-        const leaveButton = document.getElementById("leave-chat");
-
-        //Chat Variables
-        const chatId = localStorage.getItem("chat_id");
-        const token = localStorage.getItem("token");
-        let partnerUsername = localStorage.getItem("partner") || "…";
-        let pollInterval = null;
-
-        // UI Functions
-        function showError(message) {
-            const errorDiv = document.createElement("div");
-            errorDiv.className = "error-message";
-            errorDiv.textContent = message;
-            messagesDiv.appendChild(errorDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        //Main Chat Logic
-        async function startChat() {
-            if (!chatId || !token) {
-                alert("Missing chat ID or authentication token. Redirecting to home.");
-                window.location.href = "/";
-                return;
-            }
-
-            try {
-                await loadAndGenerateKeys(); // Load or generate our own keys first
-            } catch (e) {
-                // Key generation/load failed, user is already alerted by showError
-                console.error("Critical: Key setup failed, cannot proceed with chat.");
-                // Optionally redirect or disable chat features
-                // window.location.href = "/";
-                return;
-            }
-
-            try {
-                const joinResp = await fetch("/chat/join-chat/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Token " + token
-                    },
-                    body: JSON.stringify({ chat_id: chatId })
-                });
-
-                if (!joinResp.ok) {
-                    const errJson = await joinResp.json().catch(() => ({}));
-                    alert(errJson.message || "Failed to join chat.");
-                    window.location.href = "/";
-                    return;
-                }
-            } catch (err) {
-                console.error("Join-chat network error:", err);
-                alert("Network error while joining chat.");
-                window.location.href = "/";
-                return;
-            }
-
-            pollInterval = setInterval(checkChatReady, 2000);
-            await checkChatReady(); // Initial check immediately
-        }
-
-        async function checkChatReady() {
-            try {
-                const resp = await fetch(`/chat/get-messages/${chatId}/`, {
-                    method: "GET",
-                    headers: {
-                        "Authorization": "Token " + token,
-                    }
-                });
-
-                if (resp.status === 204) { // No Content, chat not ready or no new messages
-                    return;
-                }
-                if (resp.status === 404) {
-                    alert("Chat not found or your partner left before joining.");
-                    localStorage.clear();
-                    clearInterval(pollInterval);
-                    window.location.href = "/";
-                    return;
-                }
-                if (resp.status === 403) {
-                    alert("You’re not authorized for this chat.");
-                    clearInterval(pollInterval);
-                    window.location.href = "/";
-                    return;
-                }
-                if (!resp.ok) { // Other HTTP errors
-                    console.error("checkChatReady() failed with status:", resp.status, await resp.text());
-                    return;
-                }
-
-                const data = await resp.json();
-
-                // 1) Hide the overlay and show chat right away if both joined
-                if (data.both_joined) {
-                    waitingOverlay.style.display = "none";
-                    chatContainer.style.display = "flex";
-
-                    // 2) Store partner_id so send-message can use it
-                    if (data.partner_id) {
-                        localStorage.setItem("partner_id", data.partner_id);
-                        await loadPartnerPublicKey(); // Load partner's public key once chat is ready
-                    }
-
-
-                    // 3) Update partner's name if needed
-                    if (data.partner && data.partner !== partnerUsername) {
-                        partnerUsername = data.partner;
-                        partnerNameSpan.textContent = partnerUsername;
-                        localStorage.setItem("partner", partnerUsername);
-                    }
-
-                    // 4) Render any existing messages
-                    await renderMessages(data.messages, data.current_user);
-
-                    // 5) Switch to polling only for new messages from now on
-                    clearInterval(pollInterval);
-                    pollInterval = setInterval(fetchNewMessages, 2000);
-                }
-            } catch (err) {
-                console.error("Error during checkChatReady:", err);
-                // Consider showing a user-friendly error message or attempting to reconnect
-            }
-        }
-
-        async function fetchNewMessages() {
-            try {
-                const resp = await fetch("/chat/get-messages/" + chatId + "/", {
-                    headers: { "Authorization": "Token " + token }
-                });
-                if (!resp.ok) {
-                    if (resp.status === 404 || resp.status === 403) {
-                        alert("Chat ended or access revoked. Redirecting.");
-                        localStorage.clear();
-                        clearInterval(pollInterval);
-                        window.location.href = "/";
-                        return;
-                    }
-                    console.warn("fetchNewMessages got status", resp.status);
-                    return;
-                }
-
-                const data = await resp.json();
-                console.log(" fetched messages:", data.messages);
-                //data.messages.forEach(msg => renderProcessedMessage(msg, data.current_user));
-
-                if (data.partner && data.partner !== partnerUsername) {
-                    partnerUsername = data.partner;
-                    partnerNameSpan.textContent = partnerUsername;
-                    localStorage.setItem("partner", partnerUsername);
-                    // Reload partner's public key if partner changes (unlikely in a 1:1 chat)
-                    await loadPartnerPublicKey();
-                }
-
-                await renderMessages(data.messages, data.current_user);
-            } catch (err) {
-                console.error("Error fetching new messages:", err);
-            }
-        }
-
-        async function renderMessages(messages, currentUserUsername) {
-            // Clear only if needed (e.g., if re-rendering all messages)
-            messagesDiv.innerHTML = "";
-
-            for (const msg of messages) {
-                await renderProcessedMessage(msg, currentUserUsername);
-            }
-
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        async function renderProcessedMessage(msg, currentUserUsername) {
-            const isCurrentUser = msg.sender_username === currentUserUsername;
-            const bubble = document.createElement("div");
-            bubble.classList.add("message", isCurrentUser ? "current-user" : "other-user");
-
-            // Header row
-            const header = document.createElement("div");
-            header.className = "message-header";
-            const userEl = document.createElement("div");
-            userEl.className = "message-username";
-            userEl.textContent = isCurrentUser ? "You" : msg.sender_username;
-            const timeEl = document.createElement("div");
-            timeEl.className = "message-timestamp";
-            timeEl.textContent = new Date(msg.timestamp).toLocaleTimeString();
-            header.append(userEl, timeEl);
-
-            let displayContent = "";
-            try {
-                // 1) Pick the right wrapped key — new field first, then fallback
-                const wrappedKeyB64 = isCurrentUser
-                    ? (msg.sender_encrypted_symmetric_key || msg.encrypted_symmetric_key)
-                    : msg.encrypted_symmetric_key;
-                if (!wrappedKeyB64) throw new Error("No wrapped AES key available");
-
-                // 2) RSA-OAEP unwrap with *your* private key
-                const aesKeyBuf = await window.crypto.subtle.decrypt(
-                    { name: "RSA-OAEP" },
-                    myEncryptionKeys.privateKey,
-                    base64ToArrayBuffer(wrappedKeyB64)
-                );
-
-                // 3) AES-GCM decrypt
-                displayContent = await decryptWithAES(new Uint8Array(aesKeyBuf), {
-                    ciphertext: msg.encrypted_text,
-                    nonce:      msg.aes_nonce,
-                    tag:        msg.aes_tag
-                });
-            } catch (e) {
-                console.warn("Could not decrypt message", msg.id, e);
-                return;  // skip it
-            }
-
-            // render
-            const textEl = document.createElement("div");
-            textEl.textContent = displayContent;
-            bubble.append(header, textEl);
-            messagesDiv.appendChild(bubble);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-
-        // --- Message Sending Logic ---
-        messageForm.addEventListener("submit", async function(e) {
-            e.preventDefault();
-            const plaintext = messageInput.value.trim();
-            if (!plaintext) return;
-
-            // sanity checks
-            if (!myEncryptionKeys?.publicKey) {
-                showError("Encryption keys not loaded. Cannot send encrypted messages.");
-                return;
-            }
-            if (!mySigningKeys?.privateKey) {
-                showError("Signing key not loaded. Cannot sign messages.");
-                return;
-            }
-            if (!partnerPublicKey) {
-                showError("Partner's public key not loaded. Cannot encrypt messages.");
-                return;
-            }
-
-            try {
-                // 1) Generate AES key and encrypt the message with it
-                const aesKey = generateAESKey();
-                const aesEncrypted = await encryptWithAES(aesKey, plaintext);
-                //    -> { ciphertext, nonce, tag }
-
-                // 2a) Wrap the AES key for the partner
-                const wrappedForPartner = await window.crypto.subtle.encrypt(
-                    { name: "RSA-OAEP" },
-                    partnerPublicKey,
-                    aesKey
-                );
-                // 2b) Wrap the AES key for yourself
-                const wrappedForSelf = await window.crypto.subtle.encrypt(
-                    { name: "RSA-OAEP" },
-                    myEncryptionKeys.publicKey,
-                    aesKey
-                );
-
-                // 3) Sign the plaintext message (RSA-PSS)
-                const signatureBuffer = await window.crypto.subtle.sign(
-                    { name: "RSA-PSS", saltLength: 32 },
-                    mySigningKeys.privateKey,
-                    new TextEncoder().encode(plaintext)
-                );
-
-                // 4) Base64-encode everything for transport
-                const partnerKeyB64 = arrayBufferToBase64(wrappedForPartner);
-                const selfKeyB64    = arrayBufferToBase64(wrappedForSelf);
-                const sigB64        = arrayBufferToBase64(signatureBuffer);
-
-                // 5) POST to /chat/send-message/{chatId}/ with both wrapped keys
-                const sendResp = await fetch(`/chat/send-message/${chatId}/`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Token " + token
-                    },
-                    body: JSON.stringify({
-                        encrypted_text:                 aesEncrypted.ciphertext,
-                        encrypted_symmetric_key:        partnerKeyB64,  // for recipient
-                        sender_encrypted_symmetric_key: selfKeyB64,     // for you
-                        aes_nonce:                      aesEncrypted.nonce,
-                        aes_tag:                        aesEncrypted.tag,
-                        signature:                      sigB64
-                    })
-                });
-
-                if (sendResp.ok) {
-                    // Clear input
-                    messageInput.value = "";
-                    // Immediately refresh so you’ll see both your bubble and any new incoming ones
-                    await fetchNewMessages();
-                } else {
-                    const errorData = await sendResp.json().catch(() => ({}));
-                    showError(`Failed to send message: ${errorData.message || sendResp.statusText}`);
-                }
-            } catch (err) {
-                console.error("Send message error:", err);
-                showError("Failed to send message due to a cryptographic error.");
-            }
-        });
-
-        // --- Leave Chat Functionality ---
-        leaveButton.addEventListener("click", async function() {
-            if (confirm("Are you sure you want to leave this chat?")) {
-                await leaveChat();
-            }
-        });
-
-        async function leaveChat() {
-            try {
-                // Note: Django `LeaveChatView` expects chat_id in body for POST,
-                // but the old frontend sent it in URL. Check your Django urls.py and views.py.
-                // Assuming it expects it in the body now:
-                const resp = await fetch("/chat/leave-chat/", { // Adjusted endpoint based on your backend logic
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Token " + token
-                    },
-                    body: JSON.stringify({ chat_id: chatId }) // Sending chat_id in body
-                });
-
-                if (!resp.ok) {
-                    console.warn("Server responded with error while leaving chat:", resp.status, await resp.text());
-                }
-            } catch (err) {
-                console.error("Error leaving chat:", err);
-            } finally {
-                localStorage.removeItem('chat_id'); // Clear local chat state
-                localStorage.removeItem('partner');
-                localStorage.removeItem('partner_id');
-                clearInterval(pollInterval);
-                window.location.href = '/'; // Redirect to home/login page
-            }
-        }
-
-        // Handle page unload (attempt to leave chat gracefully)
-        window.addEventListener("beforeunload", async function(event) {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-            }
-            if (chatId && token) { // Only attempt if user is in an active chat
-                navigator.sendBeacon("/chat/leave-chat/", JSON.stringify({ chat_id: chatId }));
-                // sendBeacon is better for unload events as it doesn't block the main thread.
-                // It requires the backend to handle application/json for sendBeacon.
-            }
-        });
-
-
-        startChat();
-    })();
+    startChat();
+})();
 </script>
 </body>
 </html>

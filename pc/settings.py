@@ -20,10 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ky^56xg5&kg2&8ualp++lplthx@*x7s%g)7eyhq*&(@bohhcle'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-dev-key-do-not-use-in-production-change-me'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() != 'false'
 
 
 ALLOWED_HOSTS = [
@@ -129,12 +132,12 @@ ASGI_APPLICATION = 'pc.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.postgresql',
-        'NAME':     'my_database',
-        'USER':     'myproject_user',
-        'PASSWORD': 'mysecretpassword',
-        'HOST':     'localhost',
-        'PORT':     '5432',
-        'CONN_MAX_AGE': 60,  # Keeps connections open for 60 seconds, helps prevent floods
+        'NAME':     os.environ.get('DB_NAME', 'my_database'),
+        'USER':     os.environ.get('DB_USER', 'myproject_user'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'mysecretpassword'),
+        'HOST':     os.environ.get('DB_HOST', 'localhost'),
+        'PORT':     os.environ.get('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,
         'OPTIONS': {
             'connect_timeout': 10
         }
@@ -220,20 +223,19 @@ REST_FRAMEWORK = {
 
 
 
-# Force all requests to be redirected to HTTPS
-SECURE_SSL_REDIRECT = False
+# Force HTTPS and secure cookies only in production (set DJANGO_SECURE=true in prod env)
+_SECURE = os.environ.get('DJANGO_SECURE', 'false').lower() == 'true'
 
-# If you're behind a reverse proxy (e.g., Nginx), set the following header:
+SECURE_SSL_REDIRECT = _SECURE
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# HTTP Strict Transport Security (HSTS) settings
-SECURE_HSTS_SECONDS = 0  # 1 year in seconds
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
+SECURE_HSTS_SECONDS = 31536000 if _SECURE else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _SECURE
+SECURE_HSTS_PRELOAD = _SECURE
 
-# Optionally, ensure cookies are only sent over HTTPS
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Cookies are only sent over HTTPS in production
+SESSION_COOKIE_SECURE = _SECURE
+CSRF_COOKIE_SECURE = _SECURE
 
-SESSION_COOKIE_SAMESITE = "None"
-CSRF_COOKIE_SAMESITE    = "None"
+SESSION_COOKIE_SAMESITE = "None" if _SECURE else "Lax"
+CSRF_COOKIE_SAMESITE    = "None" if _SECURE else "Lax"

@@ -1,200 +1,272 @@
-# Telepathy
+# 🔐 Telepathy
 
-**Telepathy** is an anonymous, real-time chat platform with end-to-end RSA encryption.  
-Messages are **always stored encrypted** in the database and **decrypted using the user's private key** before being displayed. Digital signatures are also used for message integrity.
+> **Anonymous. Encrypted. Ephemeral.**
+> A real-time, end-to-end encrypted chat platform built with Django and browser-native RSA/AES cryptography.
 
 ---
 
-## 🔧 Setup Instructions
+## 📖 Overview
 
-### 1. Clone the Repository 
+**Telepathy** is a secure, anonymous chat application where **privacy is guaranteed by design**. Messages are encrypted entirely on the client side using the Web Crypto API before they ever reach the server — meaning the server **never sees plaintext**. Even if the database were compromised, no readable message content would be exposed.
 
+Two parties join a chat room via a shared 4-digit PIN. Once both connect, they exchange messages secured by **hybrid RSA + AES-GCM encryption** and verified with **RSA-PSS digital signatures**. Every encryption step is visible to the user in real-time through a send progress modal and per-message verification badges.
+
+---
+
+## ✨ Key Features
+
+| Feature | Description |
+|---|---|
+| 🔑 **Client-Side Key Generation** | Two RSA-2048 key pairs (encryption + signing) are generated in the browser at registration; private keys never leave the client |
+| 🔒 **Hybrid Encryption** | AES-256-GCM encrypts the message body; RSA-OAEP wraps the AES key for both sender and receiver |
+| ✍️ **Digital Signatures** | Every message is signed with RSA-PSS — the receiver sees a clickable ✓ Verified badge with full crypto details |
+| 📊 **Send Progress Modal** | A 6-step animated progress bar shows each encryption operation in real-time when sending a message |
+| 💾 **Encrypted-at-Rest** | Only ciphertext is stored in the database — decryption happens exclusively in the browser |
+| 📌 **PIN-Based Chat Rooms** | No email required; create or join a room using a 4-digit PIN |
+| 🛡️ **Two-Factor Authentication** | Optional TOTP 2FA via QR code and authenticator app (e.g. Google Authenticator) |
+| 🚫 **Ephemeral History** | Message history is automatically deleted when a user leaves the chat |
+| 🔐 **Token + Session Auth** | DRF Token authentication for API calls; Django sessions for page access; server-side logout invalidates tokens |
+| 🎨 **Premium UI** | Dark glassmorphism theme with animated gradients, floating particles, and smooth transitions |
+
+---
+
+## 🏗️ Architecture
+
+```
+pentour/
+├── chat/                       # Main Django application
+│   ├── models.py               # User, Chat, Message models
+│   ├── views.py                # REST API views (register, login, send/get messages, etc.)
+│   ├── serializers.py          # DRF serializers for User and Message
+│   ├── admin.py                # Django admin registrations
+│   ├── urls.py                 # URL routing for the chat app
+│   └── templates/
+│       ├── index.html          # Landing page (glassmorphism hero + particles)
+│       ├── auth.html           # Register + Login (crypto log panel)
+│       ├── usermenu.html       # Dashboard (create/join chat, PIN modal)
+│       ├── chatbox.html        # Chat interface (send modal, verification badges)
+│       └── chat/
+│           └── 2fa_setup.html  # TOTP two-factor authentication setup
+├── pc/                         # Django project configuration
+│   ├── settings.py             # App settings (env-driven secrets, DB, security)
+│   ├── urls.py                 # Root URL configuration
+│   └── asgi.py                 # ASGI entrypoint
+├── manage.py
+└── requirements.txt
+```
+
+### Encryption Flow
+
+```
+SENDER (Browser A)                          SERVER                    RECEIVER (Browser B)
+──────────────────                          ──────                    ────────────────────
+1. Generate random AES-256 key
+2. Encrypt message with AES-GCM
+3. Wrap AES key with Receiver's            Stores ONLY:
+   RSA-OAEP public key              ───►   • AES-GCM ciphertext
+4. Wrap AES key with own                    • Wrapped keys (2x)
+   RSA-OAEP public key                     • Nonce, tag, signature
+5. Sign plaintext with RSA-PSS
+6. POST all fields to API
+                                                                     7. GET encrypted messages
+                                                                     8. Unwrap AES key (RSA-OAEP)
+                                                                     9. Decrypt message (AES-GCM)
+                                                                    10. Verify signature (RSA-PSS)
+                                                                    11. Display ✓ Verified badge
+```
+
+---
+
+## ⚙️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Django 5.1, Django REST Framework |
+| **Database** | PostgreSQL (UUID-indexed messages) |
+| **Client Crypto** | Web Crypto API (RSA-OAEP, RSA-PSS, AES-256-GCM) |
+| **Server Crypto** | `cryptography` library (PEM key validation) |
+| **2FA** | `pyotp` (TOTP) + `qrcode` |
+| **Frontend** | Vanilla HTML/CSS/JS with glassmorphism design system |
+
+---
+
+## 🚀 Quick Start
+
+> **Prerequisites:** Python 3.10+, PostgreSQL 13+, Git
+
+### 1. Clone & enter the project
 
 ```bash
 git clone https://github.com/Rarees404/pentour.git
-
-For server-side version: git switch Final_Product
-For client-side version: git switch Final_ClientSide
-
 cd pentour
 ```
 
----
+### 2. Install & start PostgreSQL
 
-### 2. Install Python 3
-
-Make sure Python 3 is installed on your system.
-
-#### macOS (Python 3 is usually pre-installed)
-
-To upgrade:
+#### macOS (Homebrew)
 ```bash
-brew install python
+brew install postgresql@17
+brew services start postgresql@17
 ```
 
-#### Linux/Ubuntu:
-
+#### Linux/Ubuntu
 ```bash
-sudo apt update
-sudo apt install python3 python3-venv python3-pip
-```
-
-#### Windows:
-
-1. Download Python from: [https://www.python.org/downloads/](https://www.python.org/downloads/)
-2. Run the installer, and **make sure to check** "Add Python to PATH".
-3. Verify installation:
-```cmd
-python --version
-```
-
----
-
-### 3. Install PostgreSQL
-
-Make sure PostgreSQL is installed and running on your system.
-
-**Option A: Download Installer (Windows)**  
-Download and run the PostgreSQL installer from the link (https://www.postgresql.org/download/) and follow the setup wizard instructions.
-
-**Option B (macOS): Install via Homebrew**
-```bash
-brew install postgresql
-initdb /usr/local/var/postgres
-brew services start postgresql
-brew services status postgresql
-brew services stop postgresql //stop server after finish
-
-```
-
-**Option C (Linux/Ubuntu):**
-```bash
-sudo apt update
 sudo apt install postgresql postgresql-contrib
 sudo service postgresql start
-sudo service postgresql stop //stop the server after you finish
 ```
 
----
+#### Windows
+Download from [postgresql.org/download](https://www.postgresql.org/download/).
 
-### 4. Create Database and Role
+### 3. Create the database
 
-Open a terminal or command prompt and enter the PostgreSQL shell:
-
-#### macOS/Linux:
 ```bash
-psql postgres
+# Open a PostgreSQL shell
+psql -d postgres           # macOS/Linux
+psql -U postgres            # Windows
 ```
 
-#### Windows (cmd):
-```cmd
-psql -U postgres
-```
-
-Then run the following commands **one by one** inside the PostgreSQL shell:
+Then run:
 
 ```sql
-DROP DATABASE IF EXISTS my_database;
-DROP ROLE IF EXISTS myproject_user;
-
 CREATE ROLE myproject_user
-  WITH LOGIN
-  PASSWORD 'mysecretpassword'
-  CREATEDB
-  CREATEROLE
-  INHERIT;
+  WITH LOGIN PASSWORD 'mysecretpassword'
+  CREATEDB CREATEROLE INHERIT;
 
 CREATE DATABASE my_database
   OWNER = myproject_user
   ENCODING = 'UTF8'
-  LC_COLLATE = 'en_US.UTF-8'
-  LC_CTYPE = 'en_US.UTF-8'
   TEMPLATE = template0;
-```
-If during the commands execution you notice a change (postgres=#   ->  postgres-#) type \r. 
-After creating the role, you should see:
-```
-CREATE ROLE
-```
 
-After creating the database, you should see:
-```
-CREATE DATABASE
-```
-
-To quit the shell:
-```sql
 \q
 ```
 
----
+> **Tip (macOS):** If `psql` asks for a password and you don't know it, change `/opt/homebrew/var/postgresql@17/pg_hba.conf` — replace `md5` or `scram-sha-256` with `trust` in all local lines, then run `brew services restart postgresql@17`.
 
-### 5. Set Up the Python Environment
+### 4. Set up Python environment & install dependencies
 
-Navigate to the project folder:
-```bash
-cd pentour
-```
-
-Create and activate a virtual environment:
-
-#### macOS/Linux:
 ```bash
 python3 -m venv venv
-source venv/bin/activate
-```
+source venv/bin/activate        # macOS/Linux
+# venv\Scripts\activate         # Windows
 
-#### Windows (cmd):
-```cmd
-python -m venv venv
-venv\Scripts\activate
-```
-
----
-
-### 6. Install Dependencies
-
-```bash
 pip install --upgrade pip
 pip install -r requirements.txt
-pip install colorlog django-postgrespool2 pillow channels==4.2.0 channels_redis psycopg2-binary
 ```
 
----
-
-### 7. Apply Migrations
+### 5. Apply migrations & start the server
 
 ```bash
-python manage.py makemigrations
 python manage.py migrate
-do empty the db: python manage.py flush
-```
-
----
-
-### 8. Start the Development Server
-
-```bash
 python manage.py runserver
 ```
 
----
-
-## 🚀 Access the App
-
-Once the server is running, open your browser and navigate to:
-For more information read the "Developer Notes"
-[http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+Open **[http://127.0.0.1:8000/](http://127.0.0.1:8000/)** in your browser.
 
 ---
 
-## 🧠 Developer Notes
+## 🧪 Testing the E2E Encryption
 
-> For testing purposes, we **recommend using an incognito/private tabs on different browser windows**.  
-This ensures that localStorage (tokens/keys) is cleared between user sessions.  
-If you're creating a new user after logout, make sure to open a new incognito window.
->
+> ⚠️ **Important:** You MUST use **two different browsers** (e.g. Chrome + Firefox, or two separate incognito/private windows). Each browser needs its own `localStorage` to store separate user keys and tokens.
 
-If you encounter errors during setup or usage, feel free to contact the developer:
+### Step-by-step
+
+1. **Browser A** → `http://127.0.0.1:8000/chat/` → Register as `alice` → Login → **Create Chat** → note the 4-digit PIN
+2. **Browser B** → `http://127.0.0.1:8000/chat/` → Register as `bob` → Login → **Join Chat** → enter Alice's PIN
+3. Both browsers show "Waiting for partner…" briefly, then the chat opens
+4. **Send a message** — a progress modal appears showing all 6 encryption steps in real-time:
+   - Generating AES-256 session key
+   - Encrypting message (AES-256-GCM)
+   - Wrapping key for partner (RSA-OAEP)
+   - Wrapping key for self (RSA-OAEP)
+   - Signing message (RSA-PSS)
+   - Sending encrypted payload
+5. **Receiver** sees the message with a **✓ Verified** badge — click it to see the individual crypto verification steps (key unwrap, decrypt, signature verify)
+
+---
+
+## 🌐 API Endpoints
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `POST` | `/chat/register/` | Create account + upload both public keys | None |
+| `POST` | `/chat/login/` | Authenticate and receive a DRF token | None |
+| `POST` | `/chat/logout/` | Invalidate token and clear server session | Token |
+| `GET` | `/chat/usermenu/` | User dashboard | Session |
+| `POST` | `/chat/create-chat/` | Generate a new 4-digit chat PIN | Token |
+| `POST` | `/chat/join-chat/` | Join an existing chat by PIN | Token |
+| `GET` | `/chat/check-chat/` | Verify chat room exists and participants | Token |
+| `POST` | `/chat/send-message/<chat_id>/` | Send an encrypted message | Token |
+| `GET` | `/chat/get-messages/<chat_id>/` | Retrieve encrypted messages | Token |
+| `GET` | `/chat/get-public-key/<user_id>/` | Fetch user's encryption + signing public keys | Token |
+| `POST` | `/chat/upload-public-key/` | Upload/update caller's public keys | Token |
+| `POST` | `/chat/leave-chat/` | Leave chat (deletes message history) | Token |
+| `GET/POST` | `/chat/2fa/setup/` | Set up TOTP two-factor authentication | Session |
+
+---
+
+## 🗄️ Data Models
+
+### `User` (extends `AbstractUser`)
+| Field | Type | Description |
+|-------|------|-------------|
+| `totp_secret` | `CharField` | TOTP secret for 2FA (never exposed via API) |
+| `is_2fa_enabled` | `BooleanField` | Whether 2FA is active |
+| `public_key` | `TextField` | RSA-OAEP public key for encryption (PEM) |
+| `signing_public_key` | `TextField` | RSA-PSS public key for signature verification (PEM) |
+
+### `Chat`
+| Field | Type | Description |
+|-------|------|-------------|
+| `pin` | `CharField(4)` | Unique 4-digit room code |
+| `user1` | `FK(User)` | Chat creator |
+| `user2` | `FK(User)` | Chat joiner |
+| `is_active` | `BooleanField` | Whether the room is active |
+
+### `Message`
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `UUIDField` | UUID primary key |
+| `sender` / `receiver` | `FK(User)` | Message parties |
+| `encrypted_text` | `TextField` | AES-GCM ciphertext (Base64) |
+| `encrypted_symmetric_key` | `TextField` | AES key wrapped with receiver's RSA public key |
+| `sender_encrypted_symmetric_key` | `TextField` | AES key wrapped with sender's own RSA public key |
+| `aes_nonce` / `aes_tag` | `TextField` | AES-GCM IV and authentication tag |
+| `signature` | `TextField` | RSA-PSS digital signature (Base64) |
+
+---
+
+## 🔧 Environment Variables (Production)
+
+When deploying to production, set these environment variables instead of editing source code:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DJANGO_SECRET_KEY` | Django secret key | Insecure dev fallback |
+| `DJANGO_DEBUG` | Set to `false` for production | `true` |
+| `DJANGO_SECURE` | Set to `true` to enable HTTPS-only cookies, HSTS | `false` |
+| `DB_NAME` | PostgreSQL database name | `my_database` |
+| `DB_USER` | PostgreSQL user | `myproject_user` |
+| `DB_PASSWORD` | PostgreSQL password | `mysecretpassword` |
+| `DB_HOST` | Database host | `localhost` |
+| `DB_PORT` | Database port | `5432` |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [ContributorGuide.md](./ContributorGuide.md) for details on the project structure, where to place static files, and Git workflow conventions.
+
+---
+
+## 📬 Contact
+
+For bugs, questions, or setup issues:
 
 📧 **r.boghean@student.maastrichuniversity.nl**
+
+---
+
+## 📄 License
+
+This project is for academic use. Please contact the author before using it in production or redistributing.

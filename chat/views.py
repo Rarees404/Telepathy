@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login as django_login
+from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework import status, permissions
@@ -71,11 +71,6 @@ def chatbox(request):
 
 active_chats = {}
 
-
-@api_view(['GET'])
-def get_public_key(request, partner_id):
-    user = get_object_or_404(User, pk=partner_id)
-    return Response({ 'public_key': user.public_key_pem })
 
 
 class RegisterUserView(CreateAPIView):
@@ -183,6 +178,26 @@ class LoginView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
+class LogoutView(APIView):
+    """
+    POST /chat/logout/
+    Deletes the user's DRF token and clears the Django session,
+    making the old token immediately invalid server-side.
+    """
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # Delete the DRF token so it can never be reused
+            request.user.auth_token.delete()
+        except Exception:
+            pass
+        # Also clear the Django session
+        django_logout(request)
+        logger.info(f"[LOGOUT] User '{request.user.username}' logged out.")
+        return Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
 
 class UploadPublicKeyView(APIView):
     """

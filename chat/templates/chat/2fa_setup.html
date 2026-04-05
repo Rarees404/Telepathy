@@ -1,150 +1,113 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Telepathy • Activate 2FA</title>
+    <title>Telepathy — Enable 2FA</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Sci-Fi Font & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --bg-primary: #0a0a1f;
-            --bg-secondary: #121229;
-            --accent-cyan: #00e5ff;
-            --accent-magenta: #ff0080;
-            --text-main: #e0e0ff;
-            --text-alt: #8888aa;
-            --transition: 0.3s ease;
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#07070f;--card:rgba(255,255,255,0.04);--card-border:rgba(255,255,255,0.08);
+            --cyan:#00e5ff;--purple:#a855f7;--magenta:#ec4899;--green:#22c55e;--red:#ef4444;
+            --text:#e2e8f0;--text-dim:#64748b;--glow:0 0 60px rgba(0,229,255,0.12);
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
-            background-size: 200% 200%;
-            animation: bg-waves 8s ease infinite;
-            color: var(--text-main);
-            font-family: 'Orbitron', sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-        }
-        @keyframes bg-waves {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        .container {
-            background: rgba(18,18,41,0.85);
-            border: 1px solid var(--accent-cyan);
-            border-radius: 12px;
-            padding: 2rem;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 0 20px var(--accent-cyan);
-            animation: fadeIn 0.6s ease forwards;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--accent-cyan);
-            text-shadow: 0 0 8px var(--accent-cyan);
-        }
-        .qr-container {
-            margin: 1rem 0;
-            padding: 1rem;
-            background: var(--bg-primary);
-            border: 1px solid var(--accent-magenta);
-            border-radius: 8px;
-            box-shadow: 0 0 10px var(--accent-magenta);
-        }
-        .qr-container img {
-            max-width: 200px;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
-        p { font-size: 1rem; color: var(--text-alt); margin-bottom: 1.5rem; }
-        form input {
-            width: 100%;
-            padding: 0.8rem;
-            margin-bottom: 1rem;
-            border: 1px solid var(--accent-cyan);
-            border-radius: 6px;
-            background: var(--bg-secondary);
-            color: var(--text-main);
-            font-size: 1rem;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-            transition: var(--transition);
-        }
-        form input:focus {
-            outline: none;
-            border-color: var(--accent-magenta);
-            box-shadow: 0 0 8px var(--accent-magenta);
-        }
-        button {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.8rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--bg-primary);
-            background: var(--accent-cyan);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: 0 0 10px var(--accent-cyan);
-        }
-        button:hover {
-            background: var(--accent-magenta);
-            box-shadow: 0 0 20px var(--accent-magenta);
-            transform: scale(1.05);
-        }
-        .message {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-        }
-        .message.success { color: #0f0; }
-        .message.error { color: #f33; }
-        a.back {
-            display: block;
-            margin-top: 2rem;
-            color: var(--accent-cyan);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-        a.back:hover { color: var(--accent-magenta); }
-        @media (max-width: 480px) {
-            h1 { font-size: 1.5rem; }
-        }
+        body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+            min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;position:relative;overflow:hidden}
+        .orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.3;pointer-events:none;animation:float 20s ease-in-out infinite}
+        .orb-1{width:400px;height:400px;background:var(--purple);top:-5%;left:-5%}
+        .orb-2{width:350px;height:350px;background:var(--magenta);bottom:-10%;right:-5%;animation-delay:-8s}
+        @keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(25px,-25px)}}
+
+        .container{position:relative;z-index:1;max-width:420px;width:100%;animation:fade-up .7s cubic-bezier(.16,1,.3,1) forwards;opacity:0}
+        @keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+        .card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:2rem;
+            backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);box-shadow:var(--glow);text-align:center}
+
+        .icon-wrap{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--purple),var(--magenta));
+            display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 1.25rem;
+            box-shadow:0 0 30px rgba(168,85,247,0.3)}
+
+        h1{font-size:1.4rem;font-weight:700;margin-bottom:0.25rem}
+        .subtitle{font-size:0.85rem;color:var(--text-dim);margin-bottom:1.5rem;line-height:1.5}
+
+        .qr-box{background:rgba(255,255,255,0.03);border:1px solid var(--card-border);border-radius:14px;
+            padding:1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:center}
+        .qr-box img{max-width:200px;height:auto;border-radius:8px;background:#fff;padding:8px}
+
+        .instruction{font-size:0.82rem;color:var(--text-dim);margin-bottom:1rem;line-height:1.5}
+        .instruction strong{color:var(--text)}
+
+        .steps{display:flex;gap:0.5rem;margin-bottom:1.5rem;justify-content:center}
+        .step{display:flex;align-items:center;gap:0.35rem;font-size:0.72rem;color:var(--text-dim);
+            padding:0.35rem 0.7rem;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05)}
+        .step-num{width:18px;height:18px;border-radius:50%;background:rgba(168,85,247,0.15);
+            display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;color:var(--purple)}
+
+        form{display:flex;flex-direction:column;gap:0.75rem}
+        .input-group label{display:block;font-size:0.75rem;font-weight:500;color:var(--text-dim);margin-bottom:0.3rem;
+            text-transform:uppercase;letter-spacing:0.05em;text-align:left}
+        .otp-input{width:100%;padding:0.8rem 1rem;background:rgba(255,255,255,0.04);border:1px solid var(--card-border);
+            border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:1.2rem;text-align:center;
+            letter-spacing:0.5em;transition:all .2s}
+        .otp-input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,0.15)}
+        .otp-input::placeholder{letter-spacing:0.3em;font-size:0.9rem}
+
+        .btn{width:100%;padding:0.8rem;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:0.9rem;
+            font-weight:600;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:0.5rem}
+        .btn-primary{background:linear-gradient(135deg,var(--purple),var(--magenta));color:#fff;
+            box-shadow:0 0 20px rgba(168,85,247,0.2)}
+        .btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(168,85,247,0.4)}
+
+        .msg{margin-top:0.75rem;padding:0.6rem 0.9rem;border-radius:8px;font-size:0.82rem;text-align:center}
+        .msg.success{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:var(--green)}
+        .msg.error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red)}
+
+        .back-link{display:inline-flex;align-items:center;gap:0.4rem;margin-top:1.25rem;color:var(--text-dim);
+            text-decoration:none;font-size:0.82rem;transition:color .2s}
+        .back-link:hover{color:var(--cyan)}
     </style>
 </head>
 <body>
-<div class="container">
-    <h1><i class="fas fa-shield-alt"></i> Activate Two-Factor Auth</h1>
-    <div class="qr-container">
-        <img src="data:image/png;base64,{{ qr_data }}" alt="2FA QR Code" />
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="container">
+        <div class="card">
+            <div class="icon-wrap">🛡️</div>
+            <h1>Enable 2FA</h1>
+            <p class="subtitle">Add an extra layer of security with time-based one-time passwords (TOTP).</p>
+
+            <div class="steps">
+                <div class="step"><span class="step-num">1</span> Scan QR</div>
+                <div class="step"><span class="step-num">2</span> Enter code</div>
+                <div class="step"><span class="step-num">3</span> Verified</div>
+            </div>
+
+            <div class="qr-box">
+                <img src="data:image/png;base64,{{ qr_data }}" alt="2FA QR Code" />
+            </div>
+
+            <p class="instruction">Open <strong>Google Authenticator</strong> (or any TOTP app), scan the QR code above, then enter the 6-digit code to activate.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="input-group">
+                    <label>Verification Code</label>
+                    <input type="text" name="otp_code" class="otp-input" placeholder="000000" maxlength="6" inputmode="numeric" required autocomplete="off" />
+                </div>
+                <button type="submit" class="btn btn-primary">Verify & Activate</button>
+            </form>
+
+            {% if messages %}
+            {% for msg in messages %}
+            <div class="msg {{ msg.tags }}">{{ msg }}</div>
+            {% endfor %}
+            {% endif %}
+
+            <a href="{% url 'user_menu' %}" class="back-link">← Back to Dashboard</a>
+        </div>
     </div>
-    <p>Scan with Google Authenticator, then enter the code below:</p>
-    <form method="post">
-        {% csrf_token %}
-        <input type="text" name="otp_code" placeholder="123456" required />
-        <button type="submit"><i class="fas fa-check-circle"></i> Verify & Activate</button>
-    </form>
-    {% if messages %}
-    {% for msg in messages %}
-    <p class="message {{ msg.tags }}">{{ msg }}</p>
-    {% endfor %}
-    {% endif %}
-    <a href="{% url 'user_menu' %}" class="back">← Back to Menu</a>
-</div>
 </body>
 </html>

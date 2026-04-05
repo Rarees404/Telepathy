@@ -6,6 +6,7 @@ from . import views
 from .views import (
     RegisterUserView,
     LoginView,
+    LogoutView,
     CheckChatView,
     LeaveChatView,
     auth_page,
@@ -22,6 +23,7 @@ urlpatterns = [
     # Registration & Login
     path("register/", RegisterUserView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),
+    path("logout/", LogoutView.as_view(), name="logout"),
 
     #  User Menu (renders usermenu.html)
     path("usermenu/", user_menu, name="user_menu"),

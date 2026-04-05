@@ -46,10 +46,13 @@ local_settings.py
 .vscode/
 .ropeproject/
 .mypy_cache/
-__pycache__/
 
 # OS-specific files
 .DS_Store
+
+# Private keys / secrets
+keys/
+*.pem
 
 # Miscellaneous
 ls_recursive.txt
