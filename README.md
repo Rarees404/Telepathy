@@ -253,6 +253,45 @@ When deploying to production, set these environment variables instead of editing
 
 ---
 
+## 🧹 Stopping & Cleanup
+
+### Stop the server
+
+Press `Ctrl+C` in the terminal running `manage.py runserver`.
+
+### Stop PostgreSQL
+
+```bash
+# macOS
+brew services stop postgresql@17
+
+# Linux
+sudo service postgresql stop
+```
+
+### Delete the database and role
+
+```bash
+psql -d postgres -c "DROP DATABASE IF EXISTS my_database;"
+psql -d postgres -c "DROP ROLE IF EXISTS myproject_user;"
+```
+
+### Remove the virtual environment
+
+```bash
+deactivate                  # exit the venv first
+rm -rf venv/
+```
+
+### Reset everything (keep the database but wipe all data)
+
+```bash
+source venv/bin/activate
+python manage.py flush --no-input
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read [ContributorGuide.md](./ContributorGuide.md) for details on the project structure, where to place static files, and Git workflow conventions.
